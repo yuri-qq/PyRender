@@ -10,12 +10,8 @@ from tkinter.filedialog import askdirectory
 import tkinter.ttk as ttk
 import atexit
 import winsound
-ffmpeg = []
-fileProgressbar = 0
-output = 0
+
 def main():
-	global fileProgressbar
-	
 	currentdir = os.path.dirname(os.path.abspath(__file__))
 	fontdir = currentdir + "\\fonts"
 	options = dict.fromkeys(["input", "vcodec", "preset", "crf", "size", "abitrate", "acodec", "subtitle", "output"])
@@ -36,10 +32,9 @@ def main():
 				pass
 	
 	def start_ffmpeg(ffmpegSubprocess, subtitlestreamlist):
-		global fileProgressbar
 		global output
 		global ffmpeg
-
+		
 		output = queue.Queue()
 		
 		finishLabel["text"] = ""
@@ -247,7 +242,7 @@ def main():
 	
 	#--- build GUI ---
 	mainWindow = tkinter.Tk() #create main windows object
-	mainWindow.resizable(0,0)
+	mainWindow.resizable(0,0) #make window non-resizeable
 	mainWindow.iconbitmap(currentdir + "\\icon.ico") #set window icon (icon to change)
 	mainWindow.title("PyRender 0.1") #set window title
 	mainWindow.geometry("620x360") #set window dimensions

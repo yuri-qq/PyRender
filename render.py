@@ -41,14 +41,14 @@ def main():
 		finishLabel.update()
 
 		filesToRender = 0
-		for ffmpegCall in ffmpegSubprocess:
+		for ffmpegCall in ffmpegSubprocess: #set up file progress label
 			filesToRender = filesToRender + 1
 		filesToRender = str(filesToRender)
 		fileProgressCountLabel["text"] =  "0/" + filesToRender
 		fileProgressCountLabel.update()
 		
 		overalltime = 0
-		for ffmpegCall in ffmpegSubprocess:
+		for ffmpegCall in ffmpegSubprocess: #calculate overall time of all videos
 			ffprobe = subprocess.Popen(["ffprobe.exe", ffmpegCall[2]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 			lines = ffprobe.stdout.readlines()
 			for line in lines:
@@ -61,15 +61,17 @@ def main():
 					time = hours + mins + secs
 					overalltime = overalltime + time
 
-		env_vars = os.environ
+		env_vars = os.environ #copy environment variables
 		env_vars["FC_CONFIG_DIR"] = os.path.dirname(os.path.abspath(__file__))
 		env_vars["FONTCONFIG_FILE"] = "fonts.conf"
 		env_vars["FONTCONFIG_PATH"] = os.path.dirname(os.path.abspath(__file__))
+		#set program internal fonts.conf environment variables
+		
 		lastmaxtime = 0
 		i = 0
 		filesProgress = 0
-		for ffmpegCall in ffmpegSubprocess:
-			if(ffmpegCall[15] == "-vf"):
+		for ffmpegCall in ffmpegSubprocess: #start rendering loop
+			if(ffmpegCall[15] == "-vf"): #extract all font files if any are available
 				fontfileList = os.listdir(fontdir)
 				for fontfileName in fontfileList:
 					os.remove(fontdir + "\\" + fontfileName)
@@ -90,14 +92,14 @@ def main():
 				mkvextract.wait()
 				i = i + 1
 				
-			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars)
+			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars) #start rendering with FFPMEG
 			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out)
 			ffmpeg_out_thread.setDaemon(True)
-			ffmpeg_out_thread.start()
+			ffmpeg_out_thread.start() #start FFMPEG listener
 			
 			firstloop = True
 			loop = True
-			while loop == True:
+			while loop == True: #loop trough listener output and update pregress bars
 				lastline = output.get()
 				match = re.search(r"[0-9]+:[0-9]+:[0-9]+\.[0-9]+", lastline)
 				if(match != None):
@@ -132,7 +134,7 @@ def main():
 		winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
 		return #exit thread
 		
-	def startRendering(): #start rendering
+	def startRendering(): #prepare rendering
 		renderButton.configure(state=tkinter.DISABLED)
 		
 		if(resolution.get() == "360p"):
@@ -151,6 +153,7 @@ def main():
 		else:
 			audiocodec = "mp3"
 		
+		#set all option values
 		options["input"] = filepathInput.get()
 		options["vcodec"] = "libx264"
 		options["preset"] = presetText.get()
@@ -163,9 +166,9 @@ def main():
 
 		ffmpegSubprocess = []
 		subtitlestreamlist = []
-		videoFiles = [fileListbox.get(idx) for idx in fileListbox.curselection()]
+		videoFiles = [fileListbox.get(idx) for idx in fileListbox.curselection()] #get all selected video files
 
-		if(videoFiles):
+		if(videoFiles): #loop trough video files
 			for videoFile in videoFiles:
 				filepath = options["input"] + "\\" + videoFile
 				outputfile = options["output"] + "\\" + videoFile.rsplit(".", 1)[0] + ".mp4"
@@ -188,7 +191,7 @@ def main():
 
 			start_ffmpeg_thread = threading.Thread(target=start_ffmpeg, args=(ffmpegSubprocess, subtitlestreamlist,))
 			start_ffmpeg_thread.setDaemon(True)
-			start_ffmpeg_thread.start()
+			start_ffmpeg_thread.start() #start rendering thread
 		renderButton.configure(state=tkinter.NORMAL)
 	
 	#--- GUI related functions ---

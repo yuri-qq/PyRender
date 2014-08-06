@@ -15,10 +15,10 @@ def main():
 	currentdir = os.path.dirname(os.path.abspath(__file__))
 	fontdir = currentdir + "\\fonts"
 	options = dict.fromkeys(["input", "vcodec", "preset", "crf", "size", "abitrate", "acodec", "subtitle", "output"])
-	
+
 	if not os.path.exists(fontdir):
 		os.makedirs(fontdir)
-		
+
 	#--- main functions ---
 	def ffmpeg_out():
 		while True:
@@ -30,16 +30,16 @@ def main():
 					return #exit thread
 			except UnicodeDecodeError: #sometimes this error is trown when reading ffmpeg stdout/working on better solution
 				pass
-	
+
 	def start_ffmpeg(ffmpegSubprocess, subtitlestreamlist):
 		global output
 		global ffmpeg
-		
+
 		output = queue.Queue()
-		
+
 		finishLabel["text"] = ""
 		finishLabel.update()
-		
+
 		filesToRender = 0
 		for ffmpegCall in ffmpegSubprocess:
 			filesToRender = filesToRender + 1
@@ -98,7 +98,7 @@ def main():
 			firstloop = True
 			loop = True
 			while loop == True:
-				lastline = output.get() #timeout to change/might cause problems with ffmpeg
+				lastline = output.get()
 				match = re.search(r"[0-9]+:[0-9]+:[0-9]+\.[0-9]+", lastline)
 				if(match != None):
 					currenttime = match.group(0).split(":")
@@ -192,7 +192,7 @@ def main():
 		renderButton.configure(state=tkinter.NORMAL)
 	
 	#--- GUI related functions ---
-	def choosePath(): #function to choose a path
+	def choosePath(): #function to choose an input path
 		choosePath = askdirectory(parent=mainWindow)
 		if(choosePath):
 			fileListbox.delete(0, tkinter.END)
@@ -210,7 +210,7 @@ def main():
 	def deselectAll():
 		fileListbox.select_clear(0, tkinter.END)
 
-	def updatePreset(presetValue):
+	def updatePreset(presetValue): #resolve value to actual preset
 		if(presetValue == "0"):
 			preset = "ultrafast"
 		elif(presetValue == "1"):
@@ -235,7 +235,7 @@ def main():
 		crf = crfValue
 		crfText.set(crf)
 		
-	def chooseOutPath(): #function to choose a path
+	def chooseOutPath(): #function to choose output directory path
 		chooseOutPath = askdirectory(parent=mainWindow)
 		filepathOutput.delete(0, tkinter.END)
 		filepathOutput.insert(0, chooseOutPath)
@@ -251,17 +251,17 @@ def main():
 	filepathInputLabel.place(x=1, y=1) #set label
 	
 	filepathInput = tkinter.Entry(mainWindow) 
-	filepathInput.place(width=232, height=23, x=1, y=20) #input field for path
+	filepathInput.place(width=232, height=23, x=1, y=20) #input for path
 	
 	pathButton = tkinter.Button(mainWindow, text="Choose path", command=choosePath) 
 	pathButton.place(x=232, y=19) #button to open directory dialog
 
 	scrollbar = tkinter.Scrollbar(mainWindow)
-	scrollbar.place(height=230, x=293, y=60)
+	scrollbar.place(height=230, x=293, y=60) #place scrollbar for fileListBox
 	
 	fileListbox = tkinter.Listbox(mainWindow, selectmode='multiple', yscrollcommand=scrollbar.set)
 	fileListbox.place(width=292, height=230, x=1, y=60)
-	scrollbar.config(command=fileListbox.yview)
+	scrollbar.config(command=fileListbox.yview) #place listbox for video files
 	
 	selectAllButton = tkinter.Button(mainWindow, text="Select all", command=selectAll)
 	selectAllButton.place(x=1, y=291, width=154)
@@ -276,21 +276,21 @@ def main():
 	VerticalSeparator.place(x=311, height=362)
 	
 	vcodecLabel = tkinter.Label(mainWindow, text="video codec:         h264")
-	vcodecLabel.place(x=325, y=6) #set label
+	vcodecLabel.place(x=325, y=6)
 	
 	presetScaleLabel = tkinter.Label(mainWindow, text="preset:")
-	presetScaleLabel.place(x=325, y=36) #set label
+	presetScaleLabel.place(x=325, y=36)
 	
 	presetScale = tkinter.Scale(mainWindow, orient=tkinter.HORIZONTAL, showvalue=0, from_=0, to=8, resolution=1, command=updatePreset)
 	presetScale.place(x=370, y=36)
-	presetScale.set(5)
+	presetScale.set(5) #place scale
 	
 	presetText = tkinter.StringVar()
 	presetScaleValueLabel = tkinter.Label(mainWindow, text="medium", textvariable=presetText)
-	presetScaleValueLabel.place(x=480, y=36) #set label
+	presetScaleValueLabel.place(x=480, y=36)
 	
 	crfScaleLabel = tkinter.Label(mainWindow, text="crf:")
-	crfScaleLabel.place(x=325, y=66) #set label
+	crfScaleLabel.place(x=325, y=66)
 	
 	crfScale = tkinter.Scale(mainWindow, orient=tkinter.HORIZONTAL, showvalue=0, from_=17, to=29, resolution=1, command=updateCrf)
 	crfScale.place(x=370, y=66)
@@ -298,34 +298,34 @@ def main():
 	
 	crfText = tkinter.StringVar()
 	crfScaleValueLabel = tkinter.Label(mainWindow, text="23", textvariable=crfText)
-	crfScaleValueLabel.place(x=480, y=66) #set label
+	crfScaleValueLabel.place(x=480, y=66)
 	
 	resLabel = tkinter.Label(mainWindow, text="resolution:")
-	resLabel.place(x=325, y=96) #set label
+	resLabel.place(x=325, y=96)
 	
 	resolution = tkinter.StringVar(mainWindow)
-	resolution.set("720p") # initial value
+	resolution.set("720p") #initial value
 	resolutionMenu = tkinter.OptionMenu(mainWindow, resolution, "360p", "480p", "720p", "1080p")
 	resolutionMenu.place(width=80, x=400, y=93)
 	
 	acodecLabel = tkinter.Label(mainWindow, text="audio codec:")
-	acodecLabel.place(x=325, y=126) #set label
+	acodecLabel.place(x=325, y=126)
 	
 	acodec = tkinter.StringVar(mainWindow)
-	acodec.set("aac") # initial value
+	acodec.set("aac") #initial value
 	acodecMenu = tkinter.OptionMenu(mainWindow, acodec, "aac", "ac3", "mp3")
 	acodecMenu.place(width=80, x=400, y=123)
 	
 	abitrateLabel = tkinter.Label(mainWindow, text="audio bitrate:")
-	abitrateLabel.place(x=325, y=156) #set label
+	abitrateLabel.place(x=325, y=156)
 	
 	abitrate = tkinter.StringVar(mainWindow)
-	abitrate.set("192") # initial value
+	abitrate.set("192") #initial value
 	abitrateMenu = tkinter.OptionMenu(mainWindow, abitrate, "92", "128", "192", "256", "320")
 	abitrateMenu.place(width=80, x=400, y=153)
 	
 	abitrateLabel = tkinter.Label(mainWindow, text="kbit/s")
-	abitrateLabel.place(x=480, y=156) #set label
+	abitrateLabel.place(x=480, y=156)
 	
 	burnSubs = tkinter.IntVar()
 	burnSubsCheck = tkinter.Checkbutton(mainWindow, text="Burn subtitles to video", variable=burnSubs)
@@ -334,32 +334,32 @@ def main():
 	HorizontialSeparator = tkinter.Frame(mainWindow, bg="black")
 	HorizontialSeparator.place(x=311, y=210, width=311)
 	
-	filepathOutputLabel = tkinter.Label(mainWindow, text="output:")
-	filepathOutputLabel.place(x=325, y=215) #set label
+	filepathOutputLabel = tkinter.Label(mainWindow, text="Output directory:")
+	filepathOutputLabel.place(x=325, y=215)
 	
 	filepathOutput = tkinter.Entry(mainWindow) 
-	filepathOutput.place(width=232, height=23, x=325, y=235) #input field for path
+	filepathOutput.place(width=232, height=23, x=325, y=235) #input field for output directory
 	
 	pathOutputButton = tkinter.Button(mainWindow, text="Choose path", command=chooseOutPath) 
 	pathOutputButton.place(x=535, y=235) #button to open directory dialog
 	
 	fileProgressLabel = tkinter.Label(mainWindow, text="Progress of current file:")
-	fileProgressLabel.place(x=325, y=260) #set label
+	fileProgressLabel.place(x=325, y=260)
 	
 	fileProgressbar = ttk.Progressbar(orient=tkinter.HORIZONTAL, length=212, maximum=100, mode='determinate')
-	fileProgressbar.place(x=325, y=280)
+	fileProgressbar.place(x=325, y=280) #place progressbar
 	
 	fileProgressCountLabel = tkinter.Label(mainWindow, text="")
-	fileProgressCountLabel.place(x=540, y=280) #set label
+	fileProgressCountLabel.place(x=540, y=280)
 
 	completeProgressLabel = tkinter.Label(mainWindow, text="Overall progress:")
-	completeProgressLabel.place(x=325, y=305) #set label
+	completeProgressLabel.place(x=325, y=305)
 	
 	completeProgressbar = ttk.Progressbar(orient=tkinter.HORIZONTAL, length=212, maximum=100, mode='determinate')
 	completeProgressbar.place(x=325, y=325)
 	
 	finishLabel = tkinter.Label(mainWindow, text="", fg="dark green")
-	finishLabel.place(x=540, y=325) #set label
+	finishLabel.place(x=540, y=325)
 	
 	mainWindow.mainloop()
 	

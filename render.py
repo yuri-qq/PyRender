@@ -10,7 +10,7 @@ from tkinter.filedialog import askdirectory
 import tkinter.ttk as ttk
 import atexit
 ffmpeg = []
-fileProgressbar= 0
+fileProgressbar = 0
 output = 0
 def main():
 	global fileProgressbar
@@ -21,53 +21,8 @@ def main():
 	
 	if not os.path.exists(fontdir):
 		os.makedirs(fontdir)
-
-	mainWindow = tkinter.Tk() #create main windows object
-	mainWindow.resizable(0,0)
-	mainWindow.iconbitmap(currentdir + "\\icon.ico") #set window icon
-	mainWindow.title("PyRender 0.1") #set window title
-	mainWindow.geometry("620x360") #set window dimensions
-	
-	filepathInputLabel = tkinter.Label(mainWindow, text="Enter a file path with videos to convert:")
-	filepathInputLabel.place(x=1, y=1) #set label
-	
-	filepathInput = tkinter.Entry(mainWindow) 
-	filepathInput.place(width=232, height=23, x=1, y=20) #input field for path
-	
-	def choosePath(): #function to choose a path
-		choosePath = askdirectory(parent=mainWindow)
-		if(choosePath):
-			fileListbox.delete(0, tkinter.END)
-			filepathInput.delete(0, tkinter.END)
-			filepathInput.insert(0, choosePath)
-			onlyfiles = [ f for f in os.listdir(choosePath) if isfile(join(choosePath,f)) ]
-			for onlyfile in onlyfiles:
-				fileext = onlyfile.rsplit(".", 1)[1].lower()
-				if fileext in ["avi", "flv", "h264", "h263", "h261", "m4v", "matroska", "webm", "mov", "mp4", "m4a", "3gp", "mp3", "mpg", "mpeg", "ogg", "vob", "wav", "webm_dash_manifest", "mkv", "wmv"]:
-					fileListbox.insert(tkinter.END, onlyfile)
-			
-	pathButton = tkinter.Button(mainWindow, text="Choose path", command=choosePath) 
-	pathButton.place(x=232, y=19) #button to open directory dialog
-
-	scrollbar = tkinter.Scrollbar(mainWindow)
-	scrollbar.place(height=230, x=293, y=60)
-	
-	fileListbox = tkinter.Listbox(mainWindow, selectmode='multiple', yscrollcommand=scrollbar.set)
-	fileListbox.place(width=292, height=230, x=1, y=60)
-	scrollbar.config(command=fileListbox.yview)
-	
-	def selectAll():
-		fileListbox.select_set(0, tkinter.END)
-	
-	selectAllButton = tkinter.Button(mainWindow, text="Select all", command=selectAll)
-	selectAllButton.place(x=1, y=291, width=154)
-	
-	def deselectAll():
-		fileListbox.select_clear(0, tkinter.END)
-	
-	deselectAllButton = tkinter.Button(mainWindow, text="Deselect all", command=deselectAll)
-	deselectAllButton.place(x=156, y=291, width=154)
-
+		
+	#--- main functions ---
 	def ffmpeg_out():
 		global ffmpeg
 		global output
@@ -223,19 +178,25 @@ def main():
 		start_ffmpeg_thread.start()
 		renderButton.configure(state=tkinter.NORMAL)
 	
-	renderButton = tkinter.Button(mainWindow, text="Start rendering", command=startRendering)
-	renderButton.place(x=1, y=335, width=309) #button to start rendering
-	
-	VerticalSeparator = tkinter.Frame(mainWindow, bg="black")
-	VerticalSeparator.place(x=311, height=362)
-	
-	vcodecLabel = tkinter.Label(mainWindow, text="video codec:         h264")
-	vcodecLabel.place(x=325, y=6) #set label
-	
-	presetScaleLabel = tkinter.Label(mainWindow, text="preset:")
-	presetScaleLabel.place(x=325, y=36) #set label
-	
-	presetText = tkinter.StringVar()
+	#--- GUI related functions ---
+	def choosePath(): #function to choose a path
+		choosePath = askdirectory(parent=mainWindow)
+		if(choosePath):
+			fileListbox.delete(0, tkinter.END)
+			filepathInput.delete(0, tkinter.END)
+			filepathInput.insert(0, choosePath)
+			onlyfiles = [ f for f in os.listdir(choosePath) if isfile(join(choosePath,f)) ]
+			for onlyfile in onlyfiles:
+				fileext = onlyfile.rsplit(".", 1)[1].lower()
+				if fileext in ["avi", "flv", "h264", "h263", "h261", "m4v", "matroska", "webm", "mov", "mp4", "m4a", "3gp", "mp3", "mpg", "mpeg", "ogg", "vob", "wav", "webm_dash_manifest", "mkv", "wmv"]:
+					fileListbox.insert(tkinter.END, onlyfile)
+
+	def selectAll():
+		fileListbox.select_set(0, tkinter.END)
+
+	def deselectAll():
+		fileListbox.select_clear(0, tkinter.END)
+
 	def updatePreset(presetValue):
 		if(presetValue == "0"):
 			preset = "ultrafast"
@@ -256,26 +217,74 @@ def main():
 		else:
 			preset = "veryslow"
 		presetText.set(preset)
+
+	def updateCrf(crfValue):
+		crf = crfValue
+		crfText.set(crf)
+		
+	def chooseOutPath(): #function to choose a path
+		chooseOutPath = askdirectory(parent=mainWindow)
+		filepathOutput.delete(0, tkinter.END)
+		filepathOutput.insert(0, chooseOutPath)
+	
+	#--- build GUI ---
+	mainWindow = tkinter.Tk() #create main windows object
+	mainWindow.resizable(0,0)
+	mainWindow.iconbitmap(currentdir + "\\icon.ico") #set window icon
+	mainWindow.title("PyRender 0.1") #set window title
+	mainWindow.geometry("620x360") #set window dimensions
+	
+	filepathInputLabel = tkinter.Label(mainWindow, text="Enter a file path with videos to convert:")
+	filepathInputLabel.place(x=1, y=1) #set label
+	
+	filepathInput = tkinter.Entry(mainWindow) 
+	filepathInput.place(width=232, height=23, x=1, y=20) #input field for path
+	
+			
+	pathButton = tkinter.Button(mainWindow, text="Choose path", command=choosePath) 
+	pathButton.place(x=232, y=19) #button to open directory dialog
+
+	scrollbar = tkinter.Scrollbar(mainWindow)
+	scrollbar.place(height=230, x=293, y=60)
+	
+	fileListbox = tkinter.Listbox(mainWindow, selectmode='multiple', yscrollcommand=scrollbar.set)
+	fileListbox.place(width=292, height=230, x=1, y=60)
+	scrollbar.config(command=fileListbox.yview)
+	
+	selectAllButton = tkinter.Button(mainWindow, text="Select all", command=selectAll)
+	selectAllButton.place(x=1, y=291, width=154)
+	
+	deselectAllButton = tkinter.Button(mainWindow, text="Deselect all", command=deselectAll)
+	deselectAllButton.place(x=156, y=291, width=154)
+	
+	renderButton = tkinter.Button(mainWindow, text="Start rendering", command=startRendering)
+	renderButton.place(x=1, y=335, width=309) #button to start rendering
+	
+	VerticalSeparator = tkinter.Frame(mainWindow, bg="black")
+	VerticalSeparator.place(x=311, height=362)
+	
+	vcodecLabel = tkinter.Label(mainWindow, text="video codec:         h264")
+	vcodecLabel.place(x=325, y=6) #set label
+	
+	presetScaleLabel = tkinter.Label(mainWindow, text="preset:")
+	presetScaleLabel.place(x=325, y=36) #set label
 	
 	presetScale = tkinter.Scale(mainWindow, orient=tkinter.HORIZONTAL, showvalue=0, from_=0, to=8, resolution=1, command=updatePreset)
 	presetScale.place(x=370, y=36)
 	presetScale.set(5)
 	
+	presetText = tkinter.StringVar()
 	presetScaleValueLabel = tkinter.Label(mainWindow, text="medium", textvariable=presetText)
 	presetScaleValueLabel.place(x=480, y=36) #set label
 	
 	crfScaleLabel = tkinter.Label(mainWindow, text="crf:")
 	crfScaleLabel.place(x=325, y=66) #set label
 	
-	crfText = tkinter.StringVar()
-	def updateCrf(crfValue):
-		crf = crfValue
-		crfText.set(crf)
-	
 	crfScale = tkinter.Scale(mainWindow, orient=tkinter.HORIZONTAL, showvalue=0, from_=17, to=29, resolution=1, command=updateCrf)
 	crfScale.place(x=370, y=66)
 	crfScale.set(23)
 	
+	crfText = tkinter.StringVar()
 	crfScaleValueLabel = tkinter.Label(mainWindow, text="23", textvariable=crfText)
 	crfScaleValueLabel.place(x=480, y=66) #set label
 	
@@ -319,11 +328,6 @@ def main():
 	filepathOutput = tkinter.Entry(mainWindow) 
 	filepathOutput.place(width=232, height=23, x=325, y=235) #input field for path
 	
-	def chooseOutPath(): #function to choose a path
-		chooseOutPath = askdirectory(parent=mainWindow)
-		filepathOutput.delete(0, tkinter.END)
-		filepathOutput.insert(0, chooseOutPath)
-	
 	pathOutputButton = tkinter.Button(mainWindow, text="Choose path", command=chooseOutPath) 
 	pathOutputButton.place(x=535, y=235) #button to open directory dialog
 	
@@ -342,8 +346,7 @@ def main():
 	
 	mainWindow.mainloop()
 	
-	def exit_handler():
-		global ffmpeg
+	def exit_handler(): #terminate rendering process on exit
 		try:
 			ffmpeg.terminate()
 		except AttributeError:

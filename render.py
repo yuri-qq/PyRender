@@ -9,6 +9,7 @@ import tkinter
 from tkinter.filedialog import askdirectory
 import tkinter.ttk as ttk
 import atexit
+import winsound
 ffmpeg = []
 fileProgressbar = 0
 output = 0
@@ -24,22 +25,32 @@ def main():
 		
 	#--- main functions ---
 	def ffmpeg_out():
-		global ffmpeg
-		global output
 		while True:
 			try:
 				line = ffmpeg.stdout.readline()
-				if line:
+				if "frame=" in line or "Duration:" in line:
 					output.put(line)
-				else:
-					return
-			except UnicodeDecodeError:
+				if "Lsize" in line:
+					return #exit thread
+			except UnicodeDecodeError: #sometimes this error is trown when reading ffmpeg stdout/working on better solution
 				pass
 	
 	def start_ffmpeg(ffmpegSubprocess, subtitlestreamlist):
 		global fileProgressbar
 		global output
 		global ffmpeg
+
+		output = queue.Queue()
+		
+		finishLabel["text"] = ""
+		finishLabel.update()
+		
+		filesToRender = 0
+		for ffmpegCall in ffmpegSubprocess:
+			filesToRender = filesToRender + 1
+		filesToRender = str(filesToRender)
+		fileProgressCountLabel["text"] =  "0/" + filesToRender
+		fileProgressCountLabel.update()
 		
 		overalltime = 0
 		for ffmpegCall in ffmpegSubprocess:
@@ -61,6 +72,7 @@ def main():
 		env_vars["FONTCONFIG_PATH"] = os.path.dirname(os.path.abspath(__file__))
 		lastmaxtime = 0
 		i = 0
+		filesProgress = 0
 		for ffmpegCall in ffmpegSubprocess:
 			if(ffmpegCall[15] == "-vf"):
 				fontfileList = os.listdir(fontdir)
@@ -84,42 +96,48 @@ def main():
 				i = i + 1
 				
 			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars)
-			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out)
+			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out, name="FFMPEG OUTPUT")
 			ffmpeg_out_thread.setDaemon(True)
 			ffmpeg_out_thread.start()
 			
 			firstloop = True
 			loop = True
 			while loop == True:
-				try:
-					lastline = output.get(True, 10)
-					print(lastline)
-					match = re.search(r"[0-9]+:[0-9]+:[0-9]+\.[0-9]+", lastline)
-					if(match != None):
-						currenttime = match.group(0).split(":")
-						hours = int(currenttime[0]) * 3600
-						mins =  int(currenttime[1]) * 60
-						secs = int(currenttime[2].split(".")[0])
-						time = hours + mins + secs
-						if(firstloop):
-							videoduration = time
-							firstloop = False
-						else:
-							percent = int(time / videoduration * 100)
-							fileProgressbar["value"] = percent
-							fileProgressbar.update()
+				lastline = output.get() #timeout to change/might cause problems with ffmpeg
+				match = re.search(r"[0-9]+:[0-9]+:[0-9]+\.[0-9]+", lastline)
+				if(match != None):
+					currenttime = match.group(0).split(":")
+					hours = int(currenttime[0]) * 3600
+					mins =  int(currenttime[1]) * 60
+					secs = int(currenttime[2].split(".")[0])
+					time = hours + mins + secs
+					if(firstloop):
+						videoduration = time
+						firstloop = False
+					else:
+						percent = int(time / videoduration * 100)
+						fileProgressbar["value"] = percent
+						fileProgressbar.update()
 							
-							percent = int((lastmaxtime + time) / overalltime * 100)
-							completeProgressbar["value"] = percent
-							completeProgressbar.update()
-				except queue.Empty:
-					loop = False
+						overallPercent = int((lastmaxtime + time) / overalltime * 100)
+						completeProgressbar["value"] = overallPercent
+						completeProgressbar.update()
+							
+						if(percent == 100):			
+							loop = False
+							
+			filesProgress = filesProgress + 1
+			fileProgressCountLabel["text"] =  str(filesProgress) + "/" + filesToRender
+			fileProgressCountLabel.update()
 
 			lastmaxtime = lastmaxtime + videoduration
-		return
+			
+		finishLabel["text"] = "Done!"
+		finishLabel.update()
+		winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
+		return #exit thread
 		
 	def startRendering(): #start rendering
-		global output
 		renderButton.configure(state=tkinter.DISABLED)
 		
 		if(resolution.get() == "360p"):
@@ -152,30 +170,30 @@ def main():
 		subtitlestreamlist = []
 		videoFiles = [fileListbox.get(idx) for idx in fileListbox.curselection()]
 
-		for videoFile in videoFiles:
-			filepath = options["input"] + "\\" + videoFile
-			outputfile = options["output"] + "\\" + videoFile.rsplit(".", 1)[0] + ".mp4"
-			
-			subtitlestream = False
-			ffprobe = subprocess.Popen(["ffprobe.exe", filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
-			lines = ffprobe.stdout.readlines()
-			for line in lines:
-				if("Subtitle:" in line):
-					match = re.search(r"#[0-9]+:[0-9]+", line)
-					subtitlestream = match.group(0).split(":")[1]
-					subtitlestreamlist.append(subtitlestream)
-			
-			if(options["subtitle"] == 0 or subtitlestream == False):
-				ffmpegCall = [currentdir + "\\ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-y", outputfile]
-				ffmpegSubprocess.append(ffmpegCall)
-			else:
-				ffmpegCall = [currentdir + "\\ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-vf", "ass=subtitles.ass", "-y", outputfile]
-				ffmpegSubprocess.append(ffmpegCall)
+		if(videoFiles):
+			for videoFile in videoFiles:
+				filepath = options["input"] + "\\" + videoFile
+				outputfile = options["output"] + "\\" + videoFile.rsplit(".", 1)[0] + ".mp4"
+				
+				subtitlestream = False
+				ffprobe = subprocess.Popen(["ffprobe.exe", filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+				lines = ffprobe.stdout.readlines()
+				for line in lines:
+					if("Subtitle:" in line):
+						match = re.search(r"#[0-9]+:[0-9]+", line)
+						subtitlestream = match.group(0).split(":")[1]
+						subtitlestreamlist.append(subtitlestream)
+				
+				if(options["subtitle"] == 0 or subtitlestream == False):
+					ffmpegCall = [currentdir + "\\ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-y", outputfile]
+					ffmpegSubprocess.append(ffmpegCall)
+				else:
+					ffmpegCall = [currentdir + "\\ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-vf", "ass=subtitles.ass", "-y", outputfile]
+					ffmpegSubprocess.append(ffmpegCall)
 
-		output = queue.Queue()
-		start_ffmpeg_thread = threading.Thread(target=start_ffmpeg, args=(ffmpegSubprocess, subtitlestreamlist,))
-		start_ffmpeg_thread.setDaemon(True)
-		start_ffmpeg_thread.start()
+			start_ffmpeg_thread = threading.Thread(target=start_ffmpeg, args=(ffmpegSubprocess, subtitlestreamlist,))
+			start_ffmpeg_thread.setDaemon(True)
+			start_ffmpeg_thread.start()
 		renderButton.configure(state=tkinter.NORMAL)
 	
 	#--- GUI related functions ---
@@ -230,7 +248,7 @@ def main():
 	#--- build GUI ---
 	mainWindow = tkinter.Tk() #create main windows object
 	mainWindow.resizable(0,0)
-	mainWindow.iconbitmap(currentdir + "\\icon.ico") #set window icon
+	mainWindow.iconbitmap(currentdir + "\\icon.ico") #set window icon (icon to change)
 	mainWindow.title("PyRender 0.1") #set window title
 	mainWindow.geometry("620x360") #set window dimensions
 	
@@ -240,7 +258,6 @@ def main():
 	filepathInput = tkinter.Entry(mainWindow) 
 	filepathInput.place(width=232, height=23, x=1, y=20) #input field for path
 	
-			
 	pathButton = tkinter.Button(mainWindow, text="Choose path", command=choosePath) 
 	pathButton.place(x=232, y=19) #button to open directory dialog
 
@@ -334,15 +351,20 @@ def main():
 	fileProgressLabel = tkinter.Label(mainWindow, text="Progress of current file:")
 	fileProgressLabel.place(x=325, y=260) #set label
 	
-	fileProgress = tkinter.IntVar()
 	fileProgressbar = ttk.Progressbar(orient=tkinter.HORIZONTAL, length=212, maximum=100, mode='determinate')
 	fileProgressbar.place(x=325, y=280)
+	
+	fileProgressCountLabel = tkinter.Label(mainWindow, text="")
+	fileProgressCountLabel.place(x=540, y=280) #set label
 
 	completeProgressLabel = tkinter.Label(mainWindow, text="Overall progress:")
 	completeProgressLabel.place(x=325, y=305) #set label
 	
 	completeProgressbar = ttk.Progressbar(orient=tkinter.HORIZONTAL, length=212, maximum=100, mode='determinate')
 	completeProgressbar.place(x=325, y=325)
+	
+	finishLabel = tkinter.Label(mainWindow, text="", fg="dark green")
+	finishLabel.place(x=540, y=325) #set label
 	
 	mainWindow.mainloop()
 	

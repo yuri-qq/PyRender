@@ -96,7 +96,7 @@ def main():
 				i = i + 1
 				
 			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars)
-			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out, name="FFMPEG OUTPUT")
+			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out)
 			ffmpeg_out_thread.setDaemon(True)
 			ffmpeg_out_thread.start()
 			

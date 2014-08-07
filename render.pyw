@@ -42,7 +42,7 @@ def main():
 		
 		overalltime = 0
 		for ffmpegCall in ffmpegSubprocess: #calculate overall time of all videos
-			ffprobe = subprocess.Popen(["ffprobe.exe", ffmpegCall[2]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+			ffprobe = subprocess.Popen(["ffprobe.exe", ffmpegCall[2]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, creationflags=0x08000000)
 			lines = ffprobe.stdout.readlines()
 			for line in lines:
 				if("Duration:" in line):
@@ -79,7 +79,7 @@ def main():
 					os.remove(fontdir + "\\" + fontfileName)
 
 				mkvextractFontsCall = ["mkvextract.exe", "attachments", ffmpegCall[2]]
-				mkvmerge = subprocess.Popen(["mkvmerge.exe", "-i", ffmpegCall[2]], stdout=subprocess.PIPE, universal_newlines=True)
+				mkvmerge = subprocess.Popen(["mkvmerge.exe", "-i", ffmpegCall[2]], stdout=subprocess.PIPE, universal_newlines=True, creationflags=0x08000000)
 				lines = mkvmerge.stdout.readlines()
 				loop = 0
 				for line in lines:
@@ -88,13 +88,13 @@ def main():
 						match = re.search(r"[a-zA-Z0-9-._ ]+\.[tTfFoOcC]{3}", line)
 						mkvextractFontsCall.append(str(loop) + ":" + "fonts\\" + match.group(0))
 						
-				mkvextractFonts = subprocess.Popen(mkvextractFontsCall, stdout=subprocess.DEVNULL)
+				mkvextractFonts = subprocess.Popen(mkvextractFontsCall, stdout=subprocess.DEVNULL, creationflags=0x08000000)
 				mkvextractFonts.wait()
-				mkvextract = subprocess.Popen(["mkvextract.exe", "tracks", ffmpegCall[2], subtitlestreamlist[i] + ":subtitles.ass"], stdout=subprocess.DEVNULL)
+				mkvextract = subprocess.Popen(["mkvextract.exe", "tracks", ffmpegCall[2], subtitlestreamlist[i] + ":subtitles.ass"], stdout=subprocess.DEVNULL, creationflags=0x08000000)
 				mkvextract.wait()
 				i = i + 1
 				
-			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars) #start rendering with FFPMEG
+			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars, creationflags=0x08000000) #start rendering with FFPMEG
 			ffmpegwait = True
 			
 			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out)
@@ -185,7 +185,7 @@ def main():
 				outputfile = options["output"] + "\\" + videoFile.rsplit(".", 1)[0] + ".mp4"
 				
 				subtitlestream = False
-				ffprobe = subprocess.Popen(["ffprobe.exe", filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+				ffprobe = subprocess.Popen(["ffprobe.exe", filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, creationflags=0x08000000)
 				lines = ffprobe.stdout.readlines()
 				for line in lines:
 					if("Subtitle:" in line):

@@ -12,13 +12,6 @@ import atexit
 import winsound
 
 def main():
-	currentdir = os.path.dirname(os.path.abspath(__file__))
-	fontdir = currentdir + "\\fonts"
-	options = dict.fromkeys(["input", "vcodec", "preset", "crf", "size", "abitrate", "acodec", "subtitle", "output"])
-
-	if not os.path.exists(fontdir):
-		os.makedirs(fontdir)
-
 	#--- main functions ---
 	def ffmpeg_out():
 		while True:
@@ -67,13 +60,22 @@ def main():
 		env_vars["FONTCONFIG_PATH"] = os.path.dirname(os.path.abspath(__file__))
 		#set program internal fonts.conf environment variables
 		
+		fontdir = os.path.dirname(os.path.abspath(__file__)) + "/fonts"
+		if not os.path.exists(fontdir):
+			os.makedirs(fontdir)
+		
 		lastmaxtime = 0
 		i = 0
 		filesProgress = 0
+		ffmpegwait = False
 		for ffmpegCall in ffmpegSubprocess: #start rendering loop
+			
 			if(ffmpegCall[15] == "-vf"): #extract all font files if any are available
+				if(ffmpegwait):
+					ffmpeg.wait() #wait until ffmpeg process is finished to release files in font dir
+
 				fontfileList = os.listdir(fontdir)
-				for fontfileName in fontfileList:
+				for fontfileName in fontfileList: #remove every file in font dir to not waste disk space
 					os.remove(fontdir + "\\" + fontfileName)
 
 				mkvextractFontsCall = ["mkvextract.exe", "attachments", ffmpegCall[2]]
@@ -93,6 +95,8 @@ def main():
 				i = i + 1
 				
 			ffmpeg = subprocess.Popen(ffmpegCall, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, env=env_vars) #start rendering with FFPMEG
+			ffmpegwait = True
+			
 			ffmpeg_out_thread = threading.Thread(target=ffmpeg_out)
 			ffmpeg_out_thread.setDaemon(True)
 			ffmpeg_out_thread.start() #start FFMPEG listener
@@ -131,6 +135,7 @@ def main():
 			
 		finishLabel["text"] = "Done!"
 		finishLabel.update()
+		renderButton.configure(state=tkinter.NORMAL)
 		winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS)
 		return #exit thread
 		
@@ -154,6 +159,7 @@ def main():
 			audiocodec = "mp3"
 		
 		#set all option values
+		options = dict()
 		options["input"] = filepathInput.get()
 		options["vcodec"] = "libx264"
 		options["preset"] = presetText.get()
@@ -183,16 +189,15 @@ def main():
 						subtitlestreamlist.append(subtitlestream)
 				
 				if(options["subtitle"] == 0 or subtitlestream == False):
-					ffmpegCall = [currentdir + "\\ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-y", outputfile]
+					ffmpegCall = ["ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-y", outputfile]
 					ffmpegSubprocess.append(ffmpegCall)
 				else:
-					ffmpegCall = [currentdir + "\\ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-vf", "ass=subtitles.ass", "-y", outputfile]
+					ffmpegCall = ["ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-vf", "ass=subtitles.ass", "-y", outputfile]
 					ffmpegSubprocess.append(ffmpegCall)
 
 			start_ffmpeg_thread = threading.Thread(target=start_ffmpeg, args=(ffmpegSubprocess, subtitlestreamlist,))
 			start_ffmpeg_thread.setDaemon(True)
 			start_ffmpeg_thread.start() #start rendering thread
-		renderButton.configure(state=tkinter.NORMAL)
 	
 	#--- GUI related functions ---
 	def choosePath(): #function to choose an input path
@@ -246,7 +251,7 @@ def main():
 	#--- build GUI ---
 	mainWindow = tkinter.Tk() #create main windows object
 	mainWindow.resizable(0,0) #make window non-resizeable
-	mainWindow.iconbitmap(currentdir + "\\icon.ico") #set window icon (icon to change)
+	mainWindow.iconbitmap("icon.ico") #set window icon (icon to change)
 	mainWindow.title("PyRender 0.1") #set window title
 	mainWindow.geometry("620x360") #set window dimensions
 	

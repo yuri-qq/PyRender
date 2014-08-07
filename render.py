@@ -168,8 +168,13 @@ def main():
 		options["abitrate"] = abitrate.get()  + "k"
 		options["acodec"] = audiocodec
 		options["subtitle"] = burnSubs.get()
-		options["output"] = filepathOutput.get()
-
+		if(filepathOutput.get() == options["input"]):
+			options["output"] = filepathOutput.get() + "/rendered"
+			if not os.path.exists(options["output"]):
+				os.makedirs(options["output"])
+		else:
+			options["output"] = filepathOutput.get()
+		
 		ffmpegSubprocess = []
 		subtitlestreamlist = []
 		videoFiles = [fileListbox.get(idx) for idx in fileListbox.curselection()] #get all selected video files
@@ -346,7 +351,7 @@ def main():
 	filepathOutputLabel.place(x=325, y=215)
 	
 	filepathOutput = tkinter.Entry(mainWindow) 
-	filepathOutput.place(width=232, height=23, x=325, y=235) #input field for output directory
+	filepathOutput.place(width=210, height=23, x=325, y=235) #input field for output directory
 	
 	pathOutputButton = tkinter.Button(mainWindow, text="Choose path", command=chooseOutPath) 
 	pathOutputButton.place(x=535, y=235) #button to open directory dialog
@@ -374,7 +379,7 @@ def main():
 	def exit_handler(): #terminate rendering process on exit
 		try:
 			ffmpeg.terminate()
-		except AttributeError:
+		except (AttributeError, NameError):
 			pass
 	atexit.register(exit_handler)
 

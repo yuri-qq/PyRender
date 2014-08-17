@@ -15,7 +15,8 @@ It is capable to render video files as a batch and it can also hard-sub soft-sub
 * [Contributors](https://github.com/Yurifag/PyRender/graphs/contributors)
 
 ### Third party libraries
-* see [LIBRARIES](https://github.com/Yurifag/PyRender/blob/master/LIBRARIES.md) files
+* [FFmpeg](https://www.ffmpeg.org/)
+* [MKVToolNix](https://www.bunkus.org/videotools/mkvtoolnix/)
 
 ## License 
 * see [LICENSE](https://github.com/Yurifag/PyRender/blob/master/LICENSE.md) file

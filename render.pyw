@@ -6,12 +6,15 @@ from os.path import isfile, join
 import sys
 import re
 import tkinter
-from tkinter.filedialog import askdirectory
+from tkinter.filedialog import askdirectory, askopenfilename, asksaveasfilename
 import tkinter.ttk as ttk
 import atexit
 import winsound
 
 def main():
+	if not os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "/config"):
+			os.makedirs(os.path.dirname(os.path.abspath(__file__)) + "/config")
+
 	#--- main functions ---
 	def ffmpeg_out():
 		while True:
@@ -21,7 +24,7 @@ def main():
 					output.put(line)
 				if "Lsize" in line:
 					return #exit thread
-			except UnicodeDecodeError: #sometimes this error is trown when reading ffmpeg stdout/working on better solution
+			except UnicodeDecodeError: #sometimes this error is thrown when reading ffmpeg stdout/working on better solution
 				pass
 
 	def start_ffmpeg(ffmpegSubprocess, subtitlestreamlist):
@@ -42,7 +45,7 @@ def main():
 		
 		overalltime = 0
 		for ffmpegCall in ffmpegSubprocess: #calculate overall time of all videos
-			ffprobe = subprocess.Popen(["ffprobe.exe", ffmpegCall[2]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, creationflags=0x08000000)
+			ffprobe = subprocess.Popen(["FFmpeg/ffprobe.exe", ffmpegCall[2]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, creationflags=0x08000000)
 			lines = ffprobe.stdout.readlines()
 			for line in lines:
 				if("Duration:" in line):
@@ -78,8 +81,8 @@ def main():
 				for fontfileName in fontfileList: #remove every file in font dir to not waste disk space
 					os.remove(fontdir + "\\" + fontfileName)
 
-				mkvextractFontsCall = ["mkvextract.exe", "attachments", ffmpegCall[2]]
-				mkvmerge = subprocess.Popen(["mkvmerge.exe", "-i", ffmpegCall[2]], stdout=subprocess.PIPE, universal_newlines=True, creationflags=0x08000000)
+				mkvextractFontsCall = ["MKVToolNix/mkvextract.exe", "attachments", ffmpegCall[2]]
+				mkvmerge = subprocess.Popen(["MKVToolNix/mkvmerge.exe", "-i", ffmpegCall[2]], stdout=subprocess.PIPE, universal_newlines=True, creationflags=0x08000000)
 				lines = mkvmerge.stdout.readlines()
 				loop = 0
 				for line in lines:
@@ -90,7 +93,7 @@ def main():
 						
 				mkvextractFonts = subprocess.Popen(mkvextractFontsCall, stdout=subprocess.DEVNULL, creationflags=0x08000000)
 				mkvextractFonts.wait()
-				mkvextract = subprocess.Popen(["mkvextract.exe", "tracks", ffmpegCall[2], subtitlestreamlist[i] + ":subtitles.ass"], stdout=subprocess.DEVNULL, creationflags=0x08000000)
+				mkvextract = subprocess.Popen(["MKVToolNix/mkvextract.exe", "tracks", ffmpegCall[2], subtitlestreamlist[i] + ":subtitles.ass"], stdout=subprocess.DEVNULL, creationflags=0x08000000)
 				mkvextract.wait()
 				i = i + 1
 				
@@ -168,8 +171,8 @@ def main():
 		options["abitrate"] = abitrate.get()  + "k"
 		options["acodec"] = audiocodec
 		options["subtitle"] = burnSubs.get()
-		if(filepathOutput.get() == options["input"]):
-			options["output"] = filepathOutput.get() + "/rendered"
+		if(filepathOutput.get() == options["input"] or filepathOutput.get() == ""):
+			options["output"] = options["input"] + "/rendered"
 			if not os.path.exists(options["output"]):
 				os.makedirs(options["output"])
 		else:
@@ -185,7 +188,7 @@ def main():
 				outputfile = options["output"] + "\\" + videoFile.rsplit(".", 1)[0] + ".mp4"
 				
 				subtitlestream = False
-				ffprobe = subprocess.Popen(["ffprobe.exe", filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, creationflags=0x08000000)
+				ffprobe = subprocess.Popen(["FFmpeg/ffprobe.exe", filepath], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True, creationflags=0x08000000)
 				lines = ffprobe.stdout.readlines()
 				for line in lines:
 					if("Subtitle:" in line):
@@ -194,17 +197,63 @@ def main():
 						subtitlestreamlist.append(subtitlestream)
 				
 				if(options["subtitle"] == 0 or subtitlestream == False):
-					ffmpegCall = ["ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-y", outputfile]
+					ffmpegCall = ["FFmpeg/ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-y", outputfile]
 					ffmpegSubprocess.append(ffmpegCall)
 				else:
-					ffmpegCall = ["ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-vf", "ass=subtitles.ass", "-y", outputfile]
+					ffmpegCall = ["FFmpeg/ffmpeg.exe", "-i", filepath, "-vcodec", options["vcodec"], "-preset", options["preset"], "-crf", options["crf"], "-s", options["size"], "-acodec", options["acodec"], "-b:a", options["abitrate"], "-vf", "ass=subtitles.ass", "-y", outputfile]
 					ffmpegSubprocess.append(ffmpegCall)
 
 			start_ffmpeg_thread = threading.Thread(target=start_ffmpeg, args=(ffmpegSubprocess, subtitlestreamlist,))
 			start_ffmpeg_thread.setDaemon(True)
 			start_ffmpeg_thread.start() #start rendering thread
+		else:
+			renderButton.configure(state=tkinter.NORMAL)
 	
 	#--- GUI related functions ---
+	def saveProfile():
+		saveFile = asksaveasfilename(parent=mainWindow, defaultextension=".cfg", filetypes=[("configuration file", "*.cfg")], initialdir="/config")
+		if(saveFile):
+			file = open(saveFile, 'w+')
+			file.write("%s\n%s\n%s\n%s\n%s\n%s\n%s" % ("pyrender conf:", str(presetScale.get()), str(crfScale.get()), resolution.get(), str(abitrate.get()),  str(acodec.get()), str(burnSubs.get())))
+			file.close()
+
+	def loadProfile():
+		loadFile = askopenfilename(parent=mainWindow, defaultextension=".cfg", filetypes=[("configuration file", "*.cfg")], initialdir="/config")
+		if(loadFile):
+			file = open(loadFile, 'r')
+			lines = file.read().splitlines()
+			if(lines[0] == "pyrender conf:"):
+				presetScale.set(int(lines[1]))
+				if(lines[1] == "0"):
+					preset = "ultrafast"
+				elif(lines[1] == "1"):
+					preset = "superfast"
+				elif(lines[1] == "2"):
+					preset = "veryfast"
+				elif(lines[1] == "3"):
+					preset = "faster"
+				elif(lines[1] == "4"):
+					preset = "fast"
+				elif(lines[1] == "5"):
+					preset = "medium"
+				elif(lines[1] == "6"):
+					preset = "slow"
+				elif(lines[1] == "7"):
+					preset = "slower"
+				else:
+					preset = "veryslow"
+				presetText.set(preset)
+				
+				crfScale.set(int(lines[2]))
+				crfText.set(lines[2])
+				
+				resolution.set(lines[3])
+				abitrate.set(lines[4])
+				acodec.set(lines[5])
+				burnSubs.set(lines[6])
+				
+			file.close()
+		
 	def choosePath(): #function to choose an input path
 		choosePath = askdirectory(parent=mainWindow)
 		if(choosePath):
@@ -213,9 +262,11 @@ def main():
 			filepathInput.insert(0, choosePath)
 			onlyfiles = [ f for f in os.listdir(choosePath) if isfile(join(choosePath,f)) ]
 			for onlyfile in onlyfiles:
-				fileext = onlyfile.rsplit(".", 1)[1].lower()
-				if fileext in ["avi", "flv", "h264", "h263", "h261", "m4v", "matroska", "webm", "mov", "mp4", "m4a", "3gp", "mp3", "mpg", "mpeg", "ogg", "vob", "wav", "webm_dash_manifest", "mkv", "wmv"]:
-					fileListbox.insert(tkinter.END, onlyfile)
+				fileext = onlyfile.rsplit(".", 1)
+				if(len(fileext) == 2):
+					fileext = fileext[1].lower()
+					if fileext in ["avi", "flv", "h264", "h263", "h261", "m4v", "matroska", "webm", "mov", "mp4", "m4a", "3gp", "mp3", "mpg", "mpeg", "ogg", "vob", "wav", "webm_dash_manifest", "mkv", "wmv"]:
+						fileListbox.insert(tkinter.END, onlyfile)
 
 	def selectAll():
 		fileListbox.select_set(0, tkinter.END)
@@ -257,8 +308,15 @@ def main():
 	mainWindow = tkinter.Tk() #create main windows object
 	mainWindow.resizable(0,0) #make window non-resizeable
 	mainWindow.iconbitmap("icon.ico") #set window icon (icon to change)
-	mainWindow.title("PyRender 0.1") #set window title
-	mainWindow.geometry("620x360") #set window dimensions
+	mainWindow.title("PyRender 0.1.1") #set window title
+	mainWindow.geometry("620x380") #set window dimensions
+	
+	menubar = tkinter.Menu(mainWindow, tearoff=0) #create toplevel menu
+	filemenu = tkinter.Menu(menubar, tearoff=0)
+	filemenu.add_command(label="Save profile", command=saveProfile)
+	filemenu.add_command(label="Load profile", command=loadProfile)
+	menubar.add_cascade(label="File", menu=filemenu)
+	mainWindow.config(menu=menubar) #display the menu
 	
 	filepathInputLabel = tkinter.Label(mainWindow, text="Enter a file path with videos to convert:")
 	filepathInputLabel.place(x=1, y=1) #set label

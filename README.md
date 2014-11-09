@@ -7,7 +7,7 @@ It is capable to render video files as a batch and it can also hard-sub soft-sub
 ![Screenshot](http://puu.sh/aWkSj/f4950d1205.png)
 
 ## Download
-* [Version 0.1.1](https://github.com/Yurifag/PyRender/archive/master.zip)
+* [Version 0.2.0](https://github.com/Yurifag/PyRender/archive/master.zip)
 
 ## Contributors
 
@@ -22,7 +22,7 @@ It is capable to render video files as a batch and it can also hard-sub soft-sub
 * see [LICENSE](https://github.com/Yurifag/PyRender/blob/master/LICENSE.md) file
 
 ## Version 
-* Version 0.1.1
+* Version 0.2.0
 
 ## Contact
 #### Developer

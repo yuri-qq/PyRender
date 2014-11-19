@@ -1,7 +1,7 @@
 PyRender
 ========
-**PyRender** is a software for rendering video files.
-It is capable to render video files as a batch and it can also hard-sub soft-subtitles automatically.
+**PyRender** is a video encoding software.
+It is capable to encode video files as a batch and it can also hard-sub soft-subtitles automatically.
 
 #### Screenshot
 ![Screenshot](http://puu.sh/aWkSj/f4950d1205.png)
